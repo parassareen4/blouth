@@ -3,29 +3,44 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
-    const {username, eamil, password} = req.body;
-    try{
-        let user = await User.findOne({username});
-        if(user){
-            return res.status(400).json({message: 'Username already exists'});
+    const { username, email, password } = req.body;  // fixed typo "eamil" to "email"
+    try {
+        // Check if the username or email already exists in the database
+        let user = await User.findOne({ username });
+        if (user) {
+            return res.status(400).json({ message: 'Username already exists' });
         }
 
-        const isMatch = await bcrypt.compare(password,user.password);
-        if(!isMatch){
-            return res.status(400).json({message: 'Passwords do not match'});
-            
+        // If username is unique, proceed to check email uniqueness as well
+        user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ message: 'Email already exists' });
         }
 
-        const payload = { userId: user._id};
-        const token = jwt.sign(payload, process.env.JWT_SECRET, {expiresIn:"1h"});
+        // Hash the password before saving the user
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        res.cookie("token", token,{httpOnly: true}).json({message: 'User registered successfully',token});
+        // Create a new user and save it to the database
+        const newUser = new User({
+            username,
+            email,
+            password: hashedPassword
+        });
+        
+        await newUser.save();
 
-    } catch(err){
+        // Generate JWT token for the new user
+        const payload = { userId: newUser._id };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        // Set a cookie with the token and respond with success message
+        res.cookie("token", token, { httpOnly: true }).json({ message: 'User registered successfully', token });
+
+    } catch (err) {
         console.log(err);
-        res.status(500).json({message: 'Internal server error'});
+        res.status(500).json({ message: 'Internal server error' });
     }
-}
+};
 
 // Login user
 exports.login = async (req, res) => {
