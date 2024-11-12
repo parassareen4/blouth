@@ -1,3 +1,0 @@
-MONGO_URI=mongodb+srv://parassareen:parassareen1@cluster0.qnxcu.mongodb.net/
-JWT_SECRET=your_jwt_secret
-PORT=5000
