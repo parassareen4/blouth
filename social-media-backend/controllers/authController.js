@@ -42,26 +42,31 @@ exports.register = async (req, res) => {
     }
 };
 
-// Login user
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
+
     try {
-      // Check if user exists
-      const user = await User.findOne({ email });
-      if (!user) return res.status(400).json({ msg: "Invalid credentials" });
-  
-      // Verify password
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
-  
-      // Create JWT token
-      const payload = { userId: user._id };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
-  
-      // Send response with token
-      res.cookie("token", token, { httpOnly: true }).json({ msg: "Logged in", token });
-    } catch (error) {
-      console.error(error);
-      res.status(500).send("Server error");
+        // Check if the user exists by username or email
+        let user = await User.findOne({ $or: [{ username }, { email }] });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Compare the password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Generate JWT token
+        const payload = { userId: user._id };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        // Set the token as an HTTP-only cookie
+        res.cookie("token", token, { httpOnly: true }).json({ message: 'Login successful', token });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: 'Internal server error' });
     }
-  };
+};
