@@ -13,4 +13,10 @@ router.get('/profile',authMiddleware, (req, res) => {
 });
 
 
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
+    return res.json({ message: 'Logout successful' });
+});
+
+
 module.exports = router;
